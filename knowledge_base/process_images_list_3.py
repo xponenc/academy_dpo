@@ -12,7 +12,7 @@ from io import BytesIO
 from urllib.parse import urlparse
 
 from knowledge_base.async_selenium_parse_site_5 import FILE_PREFIX
-from services.setup_logger import setup_logger
+from del_services.setup_logger import setup_logger
 
 # === Конфигурация путей ===
 PARENT_DIR = os.path.dirname(os.path.abspath(__file__))

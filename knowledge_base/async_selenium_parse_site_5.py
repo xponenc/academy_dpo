@@ -20,30 +20,38 @@ from datetime import datetime
 from typing import List, Dict, Any
 from concurrent.futures import ThreadPoolExecutor
 
-from services.setup_logger import setup_logger
-from services.setup_webderiver import get_driver
+from del_services.setup_logger import setup_logger
+from del_services.setup_webderiver import get_driver
 
-# Тестовый режим запрос на TEST_REQUEST_LENGTH ссылок
-TEST_MODE = True
-TEST_REQUEST_LENGTH = 20
+from async_parce_site import CONCURRENCY_LIMIT
+# # Тестовый режим запрос на TEST_REQUEST_LENGTH ссылок
+# TEST_MODE = True
+# TEST_REQUEST_LENGTH = 20
+#
+#
+# SITEMAP_URL = "https://academydpo.org/sitemap.xml"
+# FILE_PREFIX = SITEMAP_URL.split('/')[2].split(".")[0]
+#
+# PARENT_DIR = os.path.dirname(os.path.abspath(__file__))
+# PARSING_OUTPUT_JSON = os.path.join(PARENT_DIR, f"{FILE_PREFIX}_parsed_site.json")
+# SITEMAP_DATA_JSON = os.path.join(PARENT_DIR, f"{FILE_PREFIX}_sitemap_data.json")
+# # TEMP_CHUNKS_DIR директория временного хранения файлов-чанков с результатами парсинга
+# TEMP_CHUNKS_DIR = os.path.join(PARENT_DIR, "chunks", FILE_PREFIX)
+#
+# # Настройка парсинга Beautiful Soap
+# CLASSES_OF_BASIC_SEMANTIC_ELEMENTS = (("article", "category"), (None, "main__content"), (None, "main"))
+# EXCLUDE_TAGS = ("form", "style", "script", "svg")
+# EXCLUDE_CLASSES = ("sw-review-item", "some-other-class")
+# BREADCRUMBS_CLASS = ("breadcrumbs", "span")
+#
+# CONCURRENCY_LIMIT = 10 # количество одновременных запросов к страницам
 
+from parsing_config import TEST_MODE, SITEMAP_DATA_JSON, PARSING_OUTPUT_JSON, TEMP_CHUNKS_DIR, \
+    TEST_REQUEST_LENGTH, BREADCRUMBS_CLASS, EXCLUDE_TAGS, EXCLUDE_CLASSES, SITEMAP_URL
 
-SITEMAP_URL = "https://academydpo.org/sitemap.xml"
-FILE_PREFIX = SITEMAP_URL.split('/')[2].split(".")[0]
-
-PARENT_DIR = os.path.dirname(os.path.abspath(__file__))
-PARSING_OUTPUT_JSON = os.path.join(PARENT_DIR, f"{FILE_PREFIX}_parsed_site.json")
-SITEMAP_DATA_JSON = os.path.join(PARENT_DIR, f"{FILE_PREFIX}_sitemap_data.json")
-# TEMP_CHUNKS_DIR директория временного хранения файлов-чанков с результатами парсинга
-TEMP_CHUNKS_DIR = os.path.join(PARENT_DIR, "chunks", FILE_PREFIX)
-
-# Настройка парсинга Beautiful Soap
+# # Настройка парсинга Beautiful Soap
 CLASSES_OF_BASIC_SEMANTIC_ELEMENTS = (("article", "category"), (None, "main__content"), (None, "main"))
-EXCLUDE_TAGS = ("form", "style", "script", "svg")
-EXCLUDE_CLASSES = ("sw-review-item", "some-other-class")
-BREADCRUMBS_CLASS = ("breadcrumbs", "span")
 
-CONCURRENCY_LIMIT = 10 # количество одновременных запросов к страницам
 semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
 
 LOG_FILE = "site_parsing.log"
