@@ -22,9 +22,14 @@ def setup_logger(name: str, log_dir: str = "logs", log_file: str = "debug.log") 
 
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
+    logger.propagate = False
 
+    # formatter = logging.Formatter(
+    #     "%(asctime)s [%(name)s] [%(levelname)s] %(message)s",
+    #     datefmt="%Y-%m-%d %H:%M:%S"
+    # )
     formatter = logging.Formatter(
-        "%(asctime)s [%(name)s] [%(levelname)s] %(message)s",
+        "%(asctime)s [%(name)s:%(module)s:%(lineno)d] [%(levelname)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S"
     )
 

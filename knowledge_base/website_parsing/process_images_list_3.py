@@ -1,7 +1,5 @@
 import os
 import json
-import logging
-from logging.handlers import RotatingFileHandler
 
 import requests
 import ijson
@@ -11,15 +9,13 @@ from PIL import Image
 from io import BytesIO
 from urllib.parse import urlparse
 
-from knowledge_base.async_selenium_parse_site_5 import FILE_PREFIX
-from del_services.setup_logger import setup_logger
+from knowledge_base.website_parsing.parsing_config import FILE_PREFIX, PARSING_OUTPUT_DIR
+from services.setup_logger import setup_logger
 
 # === Конфигурация путей ===
-PARENT_DIR = os.path.dirname(os.path.abspath(__file__))
-
-INPUT_FILE = os.path.join(PARENT_DIR, f"{FILE_PREFIX}_parsed_site.json")
-PARSING_OUTPUT_W_READY_IMAGES_JSON = os.path.join(PARENT_DIR, f"{FILE_PREFIX}_sitemap_data_processed_images.json")
-IMAGE_SAVE_ROOT = os.path.join(PARENT_DIR, FILE_PREFIX, "site_images")
+INPUT_FILE = os.path.join(PARSING_OUTPUT_DIR, f"academydpo_parsed_data_2025_05_23_00-13.json")
+PARSING_OUTPUT_W_READY_IMAGES_JSON = os.path.join(PARSING_OUTPUT_DIR, f"{FILE_PREFIX}_sitemap_data_processed_images.json")
+IMAGE_SAVE_ROOT = os.path.join(PARSING_OUTPUT_DIR, FILE_PREFIX, "site_images")
 
 LOGS_DIR = os.path.join("logs", "knowledge_base")
 LOG_FILE = "process_images.log"

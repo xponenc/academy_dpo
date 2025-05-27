@@ -19,13 +19,19 @@ def summarize(filename: str) -> Dict[str, Any]:
     total = 0
     available = 0
     dates = []
+    empty_ = []
+    failed_links = []
     try:
         with open(filename, mode="r", encoding="utf-8") as f:
             # Потоковое чтение JSON с помощью ijson
             for item in ijson.items(f, "item"):
                 total += 1
-                if item["status"] == 200:
+                if item.get("status") == 200:
                     available += 1
+                    if not item.get("page_content") or not item.get("page_categories"):
+                        empty_.append(item.get('loc'))
+                else:
+                    failed_links.append(f"status: {item.get('status')} {item.get('loc')}")
                 if item["lastmod"]:
                     try:
                         dates.append(datetime.fromisoformat(item["lastmod"]))
@@ -36,9 +42,15 @@ def summarize(filename: str) -> Dict[str, Any]:
 
     unavailable = total - available
     date_range = (min(dates).date(), max(dates).date()) if dates else (None, None)
-    return {
+    report = {
         "Всего ссылок": total,
         "Доступных (200)": available,
         "Недоступных": unavailable,
-        "Диапазон дат обновлений": date_range
+        "Диапазон дат обновлений": date_range,
     }
+    if failed_links:
+        report["Список необработанных ссылок"] = "\n" + '\n'.join(failed_links)
+    if empty_:
+        report["Список пустой контент или категория"] = "\n" + '\n'.join(set(empty_))
+
+    return report

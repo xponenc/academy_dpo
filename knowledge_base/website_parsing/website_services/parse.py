@@ -15,7 +15,7 @@ import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
 
 
-from project.knowledge_base.parsing_config import EXCLUDE_TAGS, EXCLUDE_CLASSES, EXCLUDE_KEYWORDS, STYLE_TAGS, \
+from knowledge_base.website_parsing.parsing_config import EXCLUDE_TAGS, EXCLUDE_CLASSES, EXCLUDE_KEYWORDS, STYLE_TAGS, \
     BREADCRUMBS_CLASS, MAIN_URL, SITEMAP_DATA_JSON, SITEMAP_URL, TEMP_CHUNKS_DIR, CONCURRENCY_LIMIT, \
     TEST_REQUEST_LENGTH, TEST_MODE
 from services.setup_logger import setup_logger
@@ -54,6 +54,10 @@ def clean_soup(soup: BeautifulSoup, url: str) -> BeautifulSoup:
     for comment in soup.find_all(string=lambda text: isinstance(text, Comment)):
         comment.extract()
 
+    org_div = soup.find("div", itemtype="http://schema.org/Organization")
+    if org_div:
+        org_div.decompose()
+
     return soup
 
 
@@ -61,30 +65,32 @@ def process_images(
         soup: BeautifulSoup,
         url: str,
         data_src_url_name: str = "data-src",
+        exclude_classes: list[str] = None,
         clear_img: bool = False,
                    ) -> BeautifulSoup:
     """
     Нормализует HTML-содержимое от ненужных тегов, классов и элементов.
 
+    :param exclude_classes: список классов неудаляемых изображений
     :param data_src_url_name: название параметра у <img> где хранится ссылка на полноразмерного изображение
     :param clear_img: удалять изображение без data_src_url_name
     :param soup: Объект BeautifulSoup с HTML-контентом.
     :param url: URL страницы, используется для преобразования относительных ссылок.
     :return: Очищенный объект BeautifulSoup.
     """
+    exclude_classes = ["attachment-full", "size-full"]
     for img in soup.find_all("img"):
         data_src = img.get(data_src_url_name)
-        src = img.get(data_src_url_name)
-        if clear_img and not data_src:
+        src = img.get("src")
+        if clear_img and not(data_src or any(img_cls in exclude_classes for img_cls in img.get("class", []))):
             img.decompose()
             continue
         if src and src.startswith("/"):
             src = f"{url}{src}"
             img["src"] = src
         if data_src and data_src.startswith("/"):
-            data_src = f"{url}{src}"
+            data_src = f"{url}{data_src}"
             img["data-src"] = data_src
-
     return soup
 
 
@@ -121,7 +127,10 @@ def extract_main_content(soup):
     """
     # candidates = soup.find_all(['article', 'main', 'section', 'div'], recursive=True)
     # main = max(candidates, key=lambda tag: len(tag.find_all(['p', 'h1', 'h2', 'h3', 'ul'])), default=soup.body)
-    main = soup.body
+
+    main = soup.find('main')
+    if not main:
+        main = soup.body
     return main
 
 

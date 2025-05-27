@@ -136,7 +136,7 @@ async def main(url: str = None):
         try:
             with open(PARSING_OUTPUT_JSON, mode="r", encoding="utf-8") as f:
                 for i, item in enumerate(ijson.items(f, "item")):
-                    if i >= TEST_REQUEST_LENGTH:
+                    if i >= 2:
                         break
                     logger.info(item)
                     pprint(item)

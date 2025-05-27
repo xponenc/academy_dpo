@@ -3,7 +3,7 @@ import os
 
 output_markdown_file = os.path.join(os.path.dirname(os.path.dirname(__file__))),
 
-with open("academydpo_parsed_site.json", 'r', encoding='utf-8') as f:
+with open("academydpo_sitemap_data_processed_images.json", 'r', encoding='utf-8') as f:
     data = json.load(f)
 
 # Открываем Markdown-файл для записи

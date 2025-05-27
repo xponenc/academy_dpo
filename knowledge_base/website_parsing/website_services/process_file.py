@@ -2,7 +2,7 @@ import json
 import os
 import shutil
 
-from project.knowledge_base.parsing_config import TEMP_CHUNKS_DIR
+from knowledge_base.website_parsing.parsing_config import TEMP_CHUNKS_DIR
 from services.setup_logger import setup_logger
 
 # Настройка логирования
