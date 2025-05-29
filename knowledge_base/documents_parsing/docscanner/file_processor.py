@@ -18,12 +18,18 @@ from datetime import datetime
 import pdfplumber
 from pdf2image import convert_from_path
 import pytesseract
-import docx
+# import docx
 from PIL import Image
 import magic
 import filetype
+from docx import Document
+from docx.oxml.text.paragraph import CT_P
+from docx.oxml.table import CT_Tbl
+from docx.text.paragraph import Paragraph
+from docx.table import Table
 
 from database import SessionLocal
+from quality_control import evaluate_text_quality
 from models import FileRecord
 from utils import detect_file_type
 
@@ -91,21 +97,7 @@ def calculate_sha256(file_path: str) -> str:
     return sha256.hexdigest()
 
 
-def process_file(file_path):
-    """
-    Определение типа файла и вызов соответствующей функции обработки.
-    :param file_path: путь к локальному файлу
-    :return: результат обработки (текст и метод)
-    """
-    mime_type = detect_file_type(file_path)
-    if mime_type == 'application/pdf':
-        return process_pdf(file_path)
-    elif mime_type and 'word' in mime_type:
-        return process_doc(file_path)
-    elif mime_type and 'image' in mime_type:
-        return process_image(file_path)
-    else:
-        raise ValueError(f"Неподдерживаемый тип файла: {mime_type}")
+
 
 
 def process_pdf(file_path: str) -> dict:
@@ -130,7 +122,8 @@ def process_pdf(file_path: str) -> dict:
                     all_text += text + "\n"
             if has_text:
                 logger.info(f"Текст извлечён из PDF напрямую: {file_path}")
-                return {"text": all_text, "method": "pdfplumber"}
+                quality_report = evaluate_text_quality(text=text)
+                return {"text": all_text, "method": "pdfplumber", "quality_report": quality_report}
     except Exception as e:
         logger.warning(f"pdfplumber не смог обработать файл {file_path}: {e}")
 
@@ -141,7 +134,8 @@ def process_pdf(file_path: str) -> dict:
         for img in images:
             ocr_text += pytesseract.image_to_string(img, lang="rus+eng") + "\n"
         logger.info(f"Текст распознан OCR из PDF: {file_path}")
-        return {"text": ocr_text, "method": "ocr"}
+        quality_report = evaluate_text_quality(text=ocr_text)
+        return {"text": ocr_text, "method": "ocr", "quality_report": quality_report}
     except Exception as e:
         logger.error(f"Ошибка OCR при обработке PDF: {e}")
         return {"text": "", "method": "ocr_failed"}
@@ -149,19 +143,44 @@ def process_pdf(file_path: str) -> dict:
 
 def process_doc(file_path: str) -> dict:
     """
-    Извлекает текст из DOCX файла.
+    Читает содержимое .docx файла с сохранением порядка появления элементов.
 
-    Args:
-        file_path (str): Путь к DOCX файлу.
+    Поддерживает:
+    - Абзацы (paragraphs)
+    - Таблицы (tables)
 
-    Returns:
-        dict: Содержит ключи "text" и "method" с распознанным текстом и методом распознавания.
+    Возвращает:
+        List[str]: Список строк, каждая строка — абзац или строка таблицы.
+                   Ячейки таблиц разделены символом ` | `.
+    Пример результата:
+        [
+            "Полное наименование",
+            "Общество с ограниченной ответственностью",
+            "ИНН | КПП",
+            "12345678 | 87654321"
+        ]
+
+    Аргументы:
+        path (str): Путь к .docx файлу
     """
     try:
-        doc = docx.Document(file_path)
-        text = "\n".join([para.text for para in doc.paragraphs])
+        doc = Document(file_path)
+        result = ""
+
+        for element in doc.element.body:
+            if isinstance(element, CT_P):
+                paragraph = Paragraph(element, doc)
+                text = paragraph.text.strip()
+                if text:
+                    result+=f"{text}\n"
+            elif isinstance(element, CT_Tbl):
+                table = Table(element, doc)
+                for row in table.rows:
+                    cells = [cell.text.strip() for cell in row.cells]
+                    row_text = " | ".join(cells)
+                    result += f"{row_text}\n"
         logger.info(f"Текст извлечён из DOCX: {file_path}")
-        return {"text": text, "method": "docx"}
+        return {"text": result, "method": "docx"}
     except Exception as e:
         logger.error(f"Ошибка при обработке DOCX: {e}")
         return {"text": "", "method": "docx_failed"}
@@ -198,15 +217,36 @@ def process_file(file_path: str) -> dict:
         dict: Словарь с распознанным текстом и методом.
     """
     mime_type = detect_file_type(file_path)
+    print(file_path)
+    print(mime_type)
     if mime_type == 'application/pdf':
-        return process_pdf(file_path)
+        return {"text": "", "method": "unsupported"}
+        # return process_pdf(file_path)
     elif 'word' in mime_type:
         return process_doc(file_path)
     elif 'image' in mime_type:
-        return process_image(file_path)
+        return {"text": "", "method": "unsupported"}
+        # return process_image(file_path)
     else:
         logger.warning(f"Неподдерживаемый тип файла: {mime_type}")
         return {"text": "", "method": "unsupported"}
+
+
+# def process_file(file_path):
+#     """
+#     Определение типа файла и вызов соответствующей функции обработки.
+#     :param file_path: путь к локальному файлу
+#     :return: результат обработки (текст и метод)
+#     """
+#     mime_type = detect_file_type(file_path)
+#     if mime_type == 'application/pdf':
+#         return process_pdf(file_path)
+#     elif mime_type and 'word' in mime_type:
+#         return process_doc(file_path)
+#     elif mime_type and 'image' in mime_type:
+#         return process_image(file_path)
+#     else:
+#         raise ValueError(f"Неподдерживаемый тип файла: {mime_type}")
 
 
 def save_file_record(url: str, filename: str, file_path: str, recognized_text: str, method: str):

@@ -539,22 +539,24 @@ async def process_urls_from_file(input_file: str,) -> None:
                                 processed_urls_set.add(item.get("url"))
                 except Exception as e:
                     logger.warning(f"Не удалось прочитать {chunk_path}: {e}")
-
+        chunk_index = int(len(processed_urls_set) / CONCURRENCY_LIMIT) + 1
+        print(chunk_index)
     with ThreadPoolExecutor(max_workers=CONCURRENCY_LIMIT) as executor:
         # to_process = [u for u in urls if not u["processed"]][:TEST_REQUEST_LENGTH if TEST_MODE else None]
         to_process = [
                          u for u in urls
                          if not u["processed"] and u["loc"] not in processed_urls_set
                      ][:TEST_REQUEST_LENGTH if TEST_MODE else None] # отфильтровываются успешно обработанные ссылки
+
         for chunk in [to_process[i:i + CONCURRENCY_LIMIT] for i in range(0, len(to_process), CONCURRENCY_LIMIT)]:
             tasks = [async_fetch_page_with_selenium(u["loc"], index + i, executor) for i, u in enumerate(chunk)]
             results = await asyncio.gather(*tasks)
             for u, result in zip(chunk, results):
                 result.update({
                     "loc": u["loc"],
-                    "lastmod": u["lastmod"],
-                    "changefreq": u["changefreq"],
-                    "priority": u["priority"]
+                    "lastmod": u.get("lastmod"),
+                    "changefreq": u.get("changefreq"),
+                    "priority": u.get("priority"),
                 })
                 buffer.append(result)
                 u["processed"] = result["status"] == 200

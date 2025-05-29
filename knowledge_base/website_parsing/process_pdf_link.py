@@ -14,11 +14,12 @@ import pdfplumber
 from pdf2image import convert_from_path
 import pytesseract
 
+from knowledge_base.documents_parsing.docscanner.quality_control import evaluate_text_quality
 from knowledge_base.website_parsing.parsing_config import FILE_PREFIX, PARSING_OUTPUT_DIR, TEMP_DIR
 from services.setup_logger import setup_logger
 
 # === Конфигурация путей ===
-INPUT_FILE = os.path.join(PARSING_OUTPUT_DIR, f"academydpo_parsed_data_2025_05_23_00-13.json")
+INPUT_FILE = os.path.join(PARSING_OUTPUT_DIR, f"academydpo_parsed_data_2025_05_29_09-36.json")
 PARSING_OUTPUT_W_READY_IMAGES_JSON = os.path.join(PARSING_OUTPUT_DIR, f"{FILE_PREFIX}_sitemap_data_processed_pdf.json")
 
 LOGS_DIR = os.path.join("logs", "knowledge_base")
@@ -30,6 +31,13 @@ logger = setup_logger(__name__, log_dir=LOGS_DIR, log_file=LOG_FILE)
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 poppler_path = r'C:\poppler-24.08.0\Library\bin'  # для pdf2image, можно настроить
 
+
+# pdfplumber	Извлечение текста, таблиц, линий
+# PyPDF2	Объединение, извлечение метаданных
+# pdfminer.six	Глубокий парсинг текста и структуры
+# PyMuPDF	Быстрый доступ к тексту, изображениям
+# pytesseract	OCR (распознавание изображений)
+# pdf2image	Конвертация PDF-страниц в изображения
 
 def recognize_pdf(file_path: str) -> dict:
     """
@@ -53,7 +61,8 @@ def recognize_pdf(file_path: str) -> dict:
                     all_text += text + "\n"
             if has_text:
                 logger.info(f"Текст извлечён из PDF напрямую: {file_path}")
-                return {"text": all_text, "method": "pdfplumber"}
+                quality_report = evaluate_text_quality(text=text)
+                return {"text": all_text, "method": "pdfplumber", "quality_report": quality_report}
     except Exception as e:
         logger.warning(f"pdfplumber не смог обработать файл {file_path}: {e}")
 
@@ -64,7 +73,8 @@ def recognize_pdf(file_path: str) -> dict:
         for img in images:
             ocr_text += pytesseract.image_to_string(img, lang="rus+eng") + "\n"
         logger.info(f"Текст распознан OCR из PDF: {file_path}")
-        return {"text": ocr_text, "method": "ocr"}
+        quality_report = evaluate_text_quality(text=ocr_text)
+        return {"text": all_text, "method": "ocr", "quality_report": quality_report}
     except Exception as e:
         logger.error(f"Ошибка OCR при обработке PDF: {e}")
         return {"text": "", "method": "ocr_failed"}
@@ -128,6 +138,8 @@ def process_pdf():
                     "label": label,
                     "url": pdf_url,
                     "recognized_content": recognized_content,
+                    "method": result.get('method', 'unknown'),
+                    "report": json.dumps(result.get('quality_report', {}), ensure_ascii=False, indent=4)
                 })
                 logger.info(f"Для {page.get('url')} добавлен PDF {pdf_url}")
             if page_inline_pdf:

@@ -26,7 +26,7 @@ SITEMAP_DATA_JSON = os.path.join(PARENT_DIR, f"{FILE_PREFIX}_sitemap_data.json")
 # TEMP_CHUNKS_DIR директория временного хранения файлов-чанков с результатами парсинга
 TEMP_CHUNKS_DIR = os.path.join(PARSING_OUTPUT_DIR, "chunks", FILE_PREFIX)
 
-CONCURRENCY_LIMIT = 10 # количество одновременных запросов к страницам
+CONCURRENCY_LIMIT = 5 # количество одновременных запросов к страницам
 
 # CLASSES_OF_BASIC_SEMANTIC_ELEMENTS = (("article", "category"), (None, "main__content"), (None, "main"))
 BREADCRUMBS_CLASS = ("breadcrumbs", "span")
@@ -43,12 +43,13 @@ EXCLUDE_TAGS = [
 ]
 # EXCLUDE_CLASSES элементы с данными классами будут исключены из обработки
 EXCLUDE_CLASSES = ("header__top", "coast_block", "express_test_marquiz",
-                   "order_tel", "cf7_form", "sw-app", "modal", "calc", "category__info-sale", "breadcrumbs")
+                   "order_tel", "cf7_form", "sw-app", "modal", "calc", "category__info-sale", "breadcrumbs",
+                   "my_yandex_centered_text")
 # "coast_block" отзывы"
 # "express_test_marquiz" форма обратной связи Экспресс-тест
 # "order_tel" форма обратной связи Звонок с телефона
 # "cf7_form" форма обратной связи Звонок с телефона
-# "sw-app" отзывы
+# "sw-app" "my_yandex_centered_text" отзывы
 # "modal" модальное окно
 # "calc" форма расчета стоимости
 #"category__info-sale" реклама над заголовком

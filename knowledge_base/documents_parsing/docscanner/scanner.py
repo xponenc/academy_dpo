@@ -81,11 +81,14 @@ def scan_and_process(public_url, path='', level=0):
                         logger.info(f"{indent}  📄 {item_name} уже обработан, пропускаем.")
                         continue
                     logger.info(f"{indent}  🔄 Обнаружено изменение в файле {item_name}, обновляем.")
-                    db_file.path = local_file_path
+                    full_url = public_url
+                    if path:
+                        full_url = f"{public_url.rstrip('/')}/{path.lstrip('/')}"
+                    db_file.path = download_url
                     db_file.sha256 = file_sha256
                     db_file.size = item_size
                     db_file.last_modified = item_modified
-                    db_file.url = public_url
+                    db_file.url = full_url
                     session.add(db_file)
                     session.commit()
 
@@ -103,6 +106,7 @@ def scan_and_process(public_url, path='', level=0):
                             text_path=text_path,
                             method=processed_data.get('method', 'unknown')
                         )
+                        version.set_quality_report(processed_data.get('quality_report', {}))
                         session.add(version)
                         session.commit()
                         logger.info(f"{indent}  📄 {item_name} распознанный текст сохранен в {text_path}")
@@ -141,6 +145,8 @@ def scan_and_process(public_url, path='', level=0):
                             text_path=text_path,
                             method=processed_data.get('method', 'unknown')
                         )
+                        version.set_quality_report(processed_data.get('quality_report', {}))
+                        print(processed_data.get('quality_report', {}))
                         session.add(version)
                         session.commit()
                         logger.info(f"{indent}  📄 {item_name} распознанный текст сохранен в {text_path}")

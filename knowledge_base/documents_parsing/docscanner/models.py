@@ -1,8 +1,10 @@
 """
 Модели базы данных: файлы и версии для контроля изменений.
 """
+import json
 
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
+from sqlalchemy.dialects.postgresql import JSONB  # для PostgreSQL
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import object_session
 from database import Base
@@ -40,6 +42,18 @@ class FileVersion(Base):
     file_id = Column(Integer, ForeignKey('files.id'))
     text_path = Column(String, nullable=False)  # путь к файлу с распознанным текстом
     processed_at = Column(DateTime, default=datetime.datetime.utcnow)
-    method = Column(String)  # метод распознавания (pdfplumber, ocr, docx, image_ocr)
+    method = Column(String)
+    # quality_report = Column(JSONB)  # для PostgreSQL
+    quality_report = Column(Text)
 
     file = relationship(FileRecord, back_populates='versions')
+
+    # Метод для сохранения отчёта
+    def set_quality_report(self, report_dict):
+        self.quality_report = json.dumps(report_dict, ensure_ascii=False)
+
+    # Метод для получения отчёта
+    def get_quality_report(self):
+        if self.quality_report:
+            return json.loads(self.quality_report)
+        return None
